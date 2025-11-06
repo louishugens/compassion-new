@@ -22,6 +22,12 @@ After the initial setup (<2 minutes) you'll have a working full-stack app using:
    ```bash
    cp .env.local.example .env.local
    ```
+   
+   Then fill in the required values:
+   - WorkOS credentials (see step 3)
+   - Convex URL (will be added in step 4)
+   - UploadThing credentials (get from [uploadthing.com](https://uploadthing.com/dashboard))
+
 3. Configure WorkOS AuthKit:
    - Create a [WorkOS account](https://workos.com/)
    - Get your Client ID and API Key from the WorkOS dashboard

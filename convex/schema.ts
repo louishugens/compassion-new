@@ -110,4 +110,35 @@ export default defineSchema({
   numbers: defineTable({
     value: v.number(),
   }),
+
+  // Lessons - educational content for beneficiaries
+  lessons: defineTable({
+    title: v.string(),
+    description: v.string(),
+    content: v.string(), // Rich text HTML content
+    // Media attachments (optional)
+    imageUrl: v.optional(v.string()),
+    videoUrl: v.optional(v.string()),
+    // Target audience
+    ageGroups: v.array(v.string()), // e.g., ["6-10", "11-15", "16-18"]
+    // Organizational scope
+    scope: v.union(
+      v.literal('national'), // visible to all clusters/cdejs
+      v.literal('cluster'),  // visible to all cdejs in a cluster
+      v.literal('cdej')      // visible to a specific cdej
+    ),
+    clusterId: v.optional(v.id('clusters')), // Required for cluster and cdej scope
+    cdejId: v.optional(v.id('cdejs')),       // Required for cdej scope
+    // Status and metadata
+    isPublished: v.boolean(),
+    createdAt: v.number(),
+    createdBy: v.id('users'),
+    updatedAt: v.optional(v.number()),
+    updatedBy: v.optional(v.id('users')),
+  })
+    .index('by_scope', ['scope'])
+    .index('by_cluster', ['clusterId'])
+    .index('by_cdej', ['cdejId'])
+    .index('by_created_by', ['createdBy'])
+    .index('by_is_published', ['isPublished']),
 });

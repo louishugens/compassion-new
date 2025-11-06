@@ -4,6 +4,10 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/AppSidebar"
 import { RoleProtection } from "@/components/RoleProtection"
 import type { Role } from "@/convex/auth"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Toaster } from "sonner"
+
 
 export default function UserLayout({
   children,
@@ -20,6 +24,15 @@ export default function UserLayout({
     "cdej_monitor",
     "beneficiary",
   ]
+  const currentUser = useQuery(api.users.getCurrentUserWithAssignments)
+
+  if (!currentUser) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-pulse">Chargement...</div>
+      </div>
+    )
+  }
 
   return (
     <RoleProtection allowedRoles={allowedRoles}>
@@ -34,6 +47,7 @@ export default function UserLayout({
             {children}
           </div>
         </SidebarInset>
+        <Toaster position="top-right" richColors />
       </SidebarProvider>
     </RoleProtection>
   )
