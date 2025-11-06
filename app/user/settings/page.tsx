@@ -20,7 +20,14 @@ export default function SettingsPage() {
     )
   }
 
-  const initials = `${currentUser.firstName.charAt(0)}${currentUser.lastName.charAt(0)}`.toUpperCase()
+  const initials = `${currentUser?.firstName?.charAt(0)}${currentUser?.lastName?.charAt(0)}`.toUpperCase()
+    if (!initials) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-pulse">Chargement...</div>
+        </div>
+      )
+    }
 
   return (
     <div className="space-y-8">
