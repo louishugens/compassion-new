@@ -17,7 +17,8 @@
     "dev:frontend": "next dev",
     "dev:backend": "convex dev",
     "predev": "convex dev --until-success && convex dashboard",
-    "build": "next build",
+    "postinstall": "npm rebuild lightningcss --ignore-scripts=false || true",
+    "build": "convex deploy --cmd 'next build' --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL",
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write ."
@@ -71,5 +72,8 @@
   "overrides": {
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2"
+  },
+  "optionalDependencies": {
+    "@lightningcss/cli": "^1.28.4"
   }
 }
