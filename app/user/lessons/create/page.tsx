@@ -9,9 +9,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import dynamic from "next/dynamic"
-import "react-quill-new/dist/quill.snow.css"
 import FileUpload from "@/components/FileUpload"
+import LexicalEditor from "@/components/LexicalEditor"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -32,9 +31,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "sonner"
-
-// Dynamically import ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false })
 
 const formSchema = z.object({
   title: z.string().min(1, "Le titre est requis"),
@@ -228,14 +224,11 @@ export default function CreateLessonPage() {
                 <FormItem>
                   <FormLabel>Contenu de la leçon *</FormLabel>
                   <FormControl>
-                    <div className="quill-wrapper">
-                      <ReactQuill
-                        theme="snow"
-                        value={field.value}
-                        onChange={field.onChange}
-                        placeholder="Écrivez le contenu de la leçon ici..."
-                      />
-                    </div>
+                    <LexicalEditor
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Écrivez le contenu de la leçon ici..."
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

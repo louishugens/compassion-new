@@ -11,7 +11,6 @@ import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
 import { fr } from "date-fns/locale"
 import { Id } from "@/convex/_generated/dataModel"
-import "react-quill-new/dist/quill.snow.css"
 
 export default function LessonPage() {
   const params = useParams()
@@ -200,7 +199,7 @@ export default function LessonPage() {
         </CardHeader>
         <CardContent>
           <div 
-            className="ql-editor prose prose-sm max-w-none"
+            className="prose prose-sm max-w-none"
             dangerouslySetInnerHTML={{ __html: lesson.content }}
           />
         </CardContent>
