@@ -29,8 +29,8 @@ interface Question {
 }
 
 type LessonOption = Pick<Doc<"lessons">, "_id" | "title">
-type ClusterOption = { _id: Id<"clusters">; name: string; code: string }
-type CdejOption = { _id: Id<"cdejs">; name: string; code: string }
+type ClusterOption = { _id: Id<"clusters">; name: string }
+type CdejOption = { _id: Id<"cdejs">; name: string }
 
 export default function CreateQuizPage() {
   const router = useRouter()

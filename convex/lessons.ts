@@ -240,12 +240,11 @@ export const getClusters = query({
     v.object({
       _id: v.id('clusters'),
       name: v.string(),
-      code: v.string(),
     })
   ),
   handler: async (ctx) => {
     const clusters = await ctx.db.query('clusters').collect();
-    return clusters.map((c) => ({ _id: c._id, name: c.name, code: c.code }));
+    return clusters.map((c) => ({ _id: c._id, name: c.name }));
   },
 });
 
@@ -260,7 +259,6 @@ export const getCdejsByCluster = query({
     v.object({
       _id: v.id('cdejs'),
       name: v.string(),
-      code: v.string(),
     })
   ),
   handler: async (ctx, args) => {
@@ -268,7 +266,7 @@ export const getCdejsByCluster = query({
       .query('cdejs')
       .withIndex('by_cluster', (q) => q.eq('clusterId', args.clusterId))
       .collect();
-    return cdejs.map((c) => ({ _id: c._id, name: c.name, code: c.code }));
+    return cdejs.map((c) => ({ _id: c._id, name: c.name }));
   },
 });
 

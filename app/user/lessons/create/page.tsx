@@ -374,7 +374,7 @@ export default function CreateLessonPage() {
                       <SelectContent>
                         {clusters?.map((cluster) => (
                           <SelectItem key={cluster._id} value={cluster._id}>
-                            {cluster.name} ({cluster.code})
+                            {cluster.name} ({cluster._id})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -405,7 +405,7 @@ export default function CreateLessonPage() {
                       <SelectContent>
                         {cdejs?.map((cdej) => (
                           <SelectItem key={cdej._id} value={cdej._id}>
-                            {cdej.name} ({cdej.code})
+                            {cdej.name} ({cdej._id})
                           </SelectItem>
                         ))}
                       </SelectContent>

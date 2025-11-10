@@ -65,22 +65,19 @@ export default defineSchema({
   // Clusters - groups of CDEJs
   clusters: defineTable({
     name: v.string(),
-    code: v.string(), // Unique identifier
     description: v.optional(v.string()),
     createdAt: v.number(),
     createdBy: v.optional(v.id('users')),
-  }).index('by_code', ['code']),
+  }),
 
   // CDEJs - Centres de Développement d'Enfants et de Jeunes
   cdejs: defineTable({
     name: v.string(),
-    code: v.string(), // Unique identifier
     clusterId: v.id('clusters'),
     description: v.optional(v.string()),
     createdAt: v.number(),
     createdBy: v.optional(v.id('users')),
   })
-    .index('by_code', ['code'])
     .index('by_cluster', ['clusterId']),
 
   // User assignments - links users to their organizational units

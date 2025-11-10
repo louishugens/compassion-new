@@ -445,6 +445,120 @@ export const bulkCreateAccessCodes = mutation({
 });
 
 /**
+ * List access codes
+ * National admin sees all, cluster admin sees codes from their cluster,
+ * CDEJ admin sees codes from their CDEJ
+ */
+export const listAccessCodes = query({
+  args: {},
+  handler: async (ctx) => {
+    const currentUser = await requireAuth(ctx);
+
+    if (currentUser.role === 'national_admin') {
+      // National admin sees all codes
+      const codes = await ctx.db.query('accessCodes').collect();
+      
+      // Enrich with cluster and CDEJ names
+      const enrichedCodes = await Promise.all(
+        codes.map(async (code) => {
+          const cluster = code.clusterId ? await ctx.db.get(code.clusterId) : null;
+          const cdej = code.cdejId ? await ctx.db.get(code.cdejId) : null;
+          const user = await ctx.db
+            .query('users')
+            .withIndex('by_code', (q) => q.eq('code', code.code))
+            .first();
+          
+          return {
+            ...code,
+            clusterName: cluster?.name,
+            cdejName: cdej?.name,
+            isUsed: !!user,
+          };
+        })
+      );
+      
+      return enrichedCodes;
+    } else if (currentUser.role === 'cluster_admin') {
+      // Cluster admin sees codes from their cluster
+      const assignments = await ctx.db
+        .query('userAssignments')
+        .withIndex('by_user', (q) => q.eq('userId', currentUser._id))
+        .collect();
+      const userClusterId = assignments.find((a) => a.clusterId)?.clusterId;
+      
+      if (!userClusterId) {
+        return [];
+      }
+      
+      const codes = await ctx.db
+        .query('accessCodes')
+        .withIndex('by_cluster', (q) => q.eq('clusterId', userClusterId))
+        .collect();
+      
+      // Enrich with cluster and CDEJ names
+      const enrichedCodes = await Promise.all(
+        codes.map(async (code) => {
+          const cluster = code.clusterId ? await ctx.db.get(code.clusterId) : null;
+          const cdej = code.cdejId ? await ctx.db.get(code.cdejId) : null;
+          const user = await ctx.db
+            .query('users')
+            .withIndex('by_code', (q) => q.eq('code', code.code))
+            .first();
+          
+          return {
+            ...code,
+            clusterName: cluster?.name,
+            cdejName: cdej?.name,
+            isUsed: !!user,
+          };
+        })
+      );
+      
+      return enrichedCodes;
+    } else if (currentUser.role === 'cdej_admin') {
+      // CDEJ admin sees codes from their CDEJ
+      const assignments = await ctx.db
+        .query('userAssignments')
+        .withIndex('by_user', (q) => q.eq('userId', currentUser._id))
+        .collect();
+      const userCdejId = assignments.find((a) => a.cdejId)?.cdejId;
+      
+      if (!userCdejId) {
+        return [];
+      }
+      
+      const codes = await ctx.db
+        .query('accessCodes')
+        .withIndex('by_cdej', (q) => q.eq('cdejId', userCdejId))
+        .collect();
+      
+      // Enrich with cluster and CDEJ names
+      const enrichedCodes = await Promise.all(
+        codes.map(async (code) => {
+          const cluster = code.clusterId ? await ctx.db.get(code.clusterId) : null;
+          const cdej = code.cdejId ? await ctx.db.get(code.cdejId) : null;
+          const user = await ctx.db
+            .query('users')
+            .withIndex('by_code', (q) => q.eq('code', code.code))
+            .first();
+          
+          return {
+            ...code,
+            clusterName: cluster?.name,
+            cdejName: cdej?.name,
+            isUsed: !!user,
+          };
+        })
+      );
+      
+      return enrichedCodes;
+    }
+
+    return [];
+  },
+});
+
+/**
  * Revoke an access code
  */
 export const revokeAccessCode = mutation({

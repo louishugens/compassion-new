@@ -9,26 +9,14 @@ import { requireAuth, requireRole } from './auth';
 export const createCluster = mutation({
   args: {
     name: v.string(),
-    code: v.string(),
     description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await requireRole(ctx, 'national_admin');
 
-    // Check if code already exists
-    const existing = await ctx.db
-      .query('clusters')
-      .withIndex('by_code', (q) => q.eq('code', args.code))
-      .first();
-
-    if (existing) {
-      throw new Error('Le code du cluster existe déjà');
-    }
-
     const currentUser = await requireAuth(ctx);
     const clusterId = await ctx.db.insert('clusters', {
       name: args.name,
-      code: args.code,
       description: args.description,
       createdAt: Date.now(),
       createdBy: currentUser._id,
@@ -75,7 +63,6 @@ export const listClusters = query({
 export const createCDEJ = mutation({
   args: {
     name: v.string(),
-    code: v.string(),
     clusterId: v.id('clusters'),
     description: v.optional(v.string()),
   },
@@ -105,19 +92,8 @@ export const createCDEJ = mutation({
       throw new Error('Cluster introuvable');
     }
 
-    // Check if code already exists
-    const existing = await ctx.db
-      .query('cdejs')
-      .withIndex('by_code', (q) => q.eq('code', args.code))
-      .first();
-
-    if (existing) {
-      throw new Error('Le code CDEJ existe déjà');
-    }
-
     const cdejId = await ctx.db.insert('cdejs', {
       name: args.name,
-      code: args.code,
       clusterId: args.clusterId,
       description: args.description,
       createdAt: Date.now(),
