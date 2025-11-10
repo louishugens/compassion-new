@@ -27,11 +27,16 @@ After the initial setup (<2 minutes) you'll have a working full-stack app using:
    - WorkOS credentials (see step 3)
    - Convex URL (will be added in step 4)
    - UploadThing credentials (get from [uploadthing.com](https://uploadthing.com/dashboard))
+   
+   For production deployments on Vercel, you'll also need to set:
+   - `WORKOS_REDIRECT_URI` - Set this in your Vercel project settings to `https://your-vercel-site.vercel.app/callback`
 
 3. Configure WorkOS AuthKit:
    - Create a [WorkOS account](https://workos.com/)
    - Get your Client ID and API Key from the WorkOS dashboard
-   - In the WorkOS dashboard, add `http://localhost:3000/callback` as a redirect URI
+   - In the WorkOS dashboard, add redirect URIs:
+     - Development: `http://localhost:3000/callback`
+     - Production: `https://your-vercel-site.vercel.app/callback`
    - Generate a secure password for cookie encryption (minimum 32 characters)
    - Update your `.env.local` file with these values
 
@@ -72,6 +77,25 @@ This app uses WorkOS AuthKit for authentication. Key features:
 - **Session management**: Automatic token refresh and session handling
 - **Middleware protection**: Routes are protected using Next.js middleware
 - **Client and server hooks**: `useAuth()` for client components, `withAuth()` for server components
+
+## Deploying to Vercel
+
+When deploying to Vercel, you need to configure the WorkOS redirect URI:
+
+1. Deploy your app to Vercel
+2. In your Vercel project settings, go to Environment Variables
+3. Add the following environment variables:
+   - `WORKOS_CLIENT_ID` - Your WorkOS Client ID
+   - `WORKOS_API_KEY` - Your WorkOS API Key
+   - `WORKOS_COOKIE_PASSWORD` - Your secure cookie encryption password (32+ characters)
+   - `WORKOS_REDIRECT_URI` - Set to `https://${VERCEL_URL}/callback` or your custom domain callback URL
+   - `NEXT_PUBLIC_CONVEX_URL` - Your Convex deployment URL
+   - `UPLOADTHING_TOKEN` - Your UploadThing token
+4. In the WorkOS dashboard, add your production redirect URI:
+   - `https://your-vercel-site.vercel.app/callback` (or your custom domain)
+5. Redeploy your app
+
+Note: Vercel automatically provides the `VERCEL_URL` environment variable with your deployment URL.
 
 ## Learn more
 

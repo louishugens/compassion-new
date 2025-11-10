@@ -141,4 +141,80 @@ export default defineSchema({
     .index('by_cdej', ['cdejId'])
     .index('by_created_by', ['createdBy'])
     .index('by_is_published', ['isPublished']),
+
+  // Quizzes - assessments linked to lessons
+  quizzes: defineTable({
+    title: v.string(),
+    description: v.string(),
+    lessonId: v.optional(v.id('lessons')), // Optional: quiz can be standalone or linked to a lesson
+    // Pass criteria
+    passingScore: v.number(), // Minimum percentage to pass (0-100)
+    // Organizational scope (inherited from lesson or standalone)
+    scope: v.union(
+      v.literal('national'),
+      v.literal('cluster'),
+      v.literal('cdej')
+    ),
+    clusterId: v.optional(v.id('clusters')),
+    cdejId: v.optional(v.id('cdejs')),
+    // Validity period
+    validFrom: v.optional(v.number()), // Timestamp when quiz becomes available
+    validUntil: v.optional(v.number()), // Timestamp when quiz expires
+    // Status and metadata
+    isPublished: v.boolean(),
+    createdAt: v.number(),
+    createdBy: v.id('users'),
+    updatedAt: v.optional(v.number()),
+    updatedBy: v.optional(v.id('users')),
+  })
+    .index('by_lesson', ['lessonId'])
+    .index('by_scope', ['scope'])
+    .index('by_cluster', ['clusterId'])
+    .index('by_cdej', ['cdejId'])
+    .index('by_is_published', ['isPublished']),
+
+  // Questions - individual questions in a quiz
+  questions: defineTable({
+    quizId: v.id('quizzes'),
+    questionText: v.string(),
+    // Answers - array of possible answers
+    answers: v.array(
+      v.object({
+        text: v.string(),
+        isCorrect: v.boolean(),
+      })
+    ),
+    points: v.number(), // Points awarded for correct answer
+    order: v.number(), // Display order in quiz
+    createdAt: v.number(),
+  })
+    .index('by_quiz', ['quizId'])
+    .index('by_quiz_and_order', ['quizId', 'order']),
+
+  // Quiz Attempts - tracks user quiz attempts and results
+  quizAttempts: defineTable({
+    quizId: v.id('quizzes'),
+    userId: v.id('users'),
+    // Results
+    score: v.number(), // Total points earned
+    maxScore: v.number(), // Total possible points
+    percentage: v.number(), // Score as percentage (0-100)
+    passed: v.boolean(), // Whether the user passed
+    // Answers given
+    answers: v.array(
+      v.object({
+        questionId: v.id('questions'),
+        selectedAnswerIndex: v.number(), // Index of the selected answer
+        isCorrect: v.boolean(),
+        pointsEarned: v.number(),
+      })
+    ),
+    // Timing
+    startedAt: v.number(),
+    completedAt: v.number(),
+  })
+    .index('by_quiz', ['quizId'])
+    .index('by_user', ['userId'])
+    .index('by_quiz_and_user', ['quizId', 'userId'])
+    .index('by_user_and_completed', ['userId', 'completedAt']),
 });

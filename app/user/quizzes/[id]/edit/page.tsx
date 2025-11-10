@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState } from "react"
-import { useRouter } from "next/navigation"
+import React, { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
 import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -23,6 +23,7 @@ interface Answer {
 }
 
 interface Question {
+  _id?: Id<"questions">
   questionText: string
   answers: Answer[]
   points: number
@@ -32,10 +33,17 @@ type LessonOption = Pick<Doc<"lessons">, "_id" | "title">
 type ClusterOption = { _id: Id<"clusters">; name: string; code: string }
 type CdejOption = { _id: Id<"cdejs">; name: string; code: string }
 
-export default function CreateQuizPage() {
+export default function EditQuizPage() {
+  const params = useParams()
   const router = useRouter()
-  const createQuiz = useMutation(api.quizzes.createQuiz)
+  const quizId = params.id as Id<"quizzes">
+
+  const quiz = useQuery(api.quizzes.getQuiz, { quizId })
+  const questions = useQuery(api.quizzes.getQuestions, { quizId })
+  const updateQuiz = useMutation(api.quizzes.updateQuiz)
   const addQuestion = useMutation(api.quizzes.addQuestion)
+  const updateQuestion = useMutation(api.quizzes.updateQuestion)
+  const deleteQuestion = useMutation(api.quizzes.deleteQuestion)
   const userInfo = useQuery(api.lessons.getCurrentUserInfo)
   const lessons = useQuery(api.lessons.getLessons, {})
   const clusters = useQuery(api.lessons.getClusters)
@@ -56,20 +64,67 @@ export default function CreateQuizPage() {
   const [validFrom, setValidFrom] = useState<string>("")
   const [validUntil, setValidUntil] = useState<string>("")
   const [isPublished, setIsPublished] = useState(false)
-  const [questions, setQuestions] = useState<Question[]>([
-    {
-      questionText: "",
-      answers: [
-        { text: "", isCorrect: false },
-        { text: "", isCorrect: false },
-      ],
-      points: 10,
-    },
-  ])
+  const [questionsList, setQuestionsList] = useState<Question[]>([])
+
+  // Load quiz data when available
+  useEffect(() => {
+    if (quiz) {
+      setTitle(quiz.title)
+      setDescription(quiz.description)
+      setPassingScore(quiz.passingScore.toString())
+      setScope(quiz.scope)
+      setClusterId(quiz.clusterId)
+      setCdejId(quiz.cdejId)
+      setLessonId(quiz.lessonId)
+      setIsPublished(quiz.isPublished)
+      
+      // Convert timestamps to datetime-local format
+      if (quiz.validFrom) {
+        const date = new Date(quiz.validFrom)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        setValidFrom(`${year}-${month}-${day}T${hours}:${minutes}`)
+      }
+      
+      if (quiz.validUntil) {
+        const date = new Date(quiz.validUntil)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        setValidUntil(`${year}-${month}-${day}T${hours}:${minutes}`)
+      }
+
+      // Set selected cluster for CDEJ scope
+      if (quiz.scope === "cdej" && quiz.clusterId) {
+        setSelectedCluster(quiz.clusterId)
+      } else if (quiz.scope === "cluster" && quiz.clusterId) {
+        setSelectedCluster(quiz.clusterId)
+      }
+    }
+  }, [quiz])
+
+  // Load questions when available
+  useEffect(() => {
+    if (questions) {
+      setQuestionsList(
+        questions.map((q) => ({
+          _id: q._id,
+          questionText: q.questionText,
+          answers: q.answers,
+          points: q.points,
+        }))
+      )
+    }
+  }, [questions])
 
   const addQuestionToList = () => {
-    setQuestions([
-      ...questions,
+    setQuestionsList([
+      ...questionsList,
       {
         questionText: "",
         answers: [
@@ -82,36 +137,45 @@ export default function CreateQuizPage() {
   }
 
   const removeQuestion = (index: number) => {
-    setQuestions(questions.filter((_, i) => i !== index))
+    const question = questionsList[index]
+    if (question._id) {
+      // Delete existing question from database
+      deleteQuestion({ questionId: question._id }).catch((error) => {
+        toast.error("Erreur", {
+          description: error.message || "Erreur lors de la suppression de la question",
+        })
+      })
+    }
+    setQuestionsList(questionsList.filter((_, i) => i !== index))
   }
 
-  const updateQuestion = (index: number, field: keyof Question, value: any) => {
-    const newQuestions = [...questions]
+  const updateQuestionInList = (index: number, field: keyof Question, value: any) => {
+    const newQuestions = [...questionsList]
     newQuestions[index] = { ...newQuestions[index], [field]: value }
-    setQuestions(newQuestions)
+    setQuestionsList(newQuestions)
   }
 
   const addAnswer = (questionIndex: number) => {
-    const newQuestions = [...questions]
+    const newQuestions = [...questionsList]
     newQuestions[questionIndex].answers.push({ text: "", isCorrect: false })
-    setQuestions(newQuestions)
+    setQuestionsList(newQuestions)
   }
 
   const removeAnswer = (questionIndex: number, answerIndex: number) => {
-    const newQuestions = [...questions]
+    const newQuestions = [...questionsList]
     if (newQuestions[questionIndex].answers.length > 2) {
       newQuestions[questionIndex].answers.splice(answerIndex, 1)
-      setQuestions(newQuestions)
+      setQuestionsList(newQuestions)
     }
   }
 
   const updateAnswer = (questionIndex: number, answerIndex: number, field: keyof Answer, value: any) => {
-    const newQuestions = [...questions]
+    const newQuestions = [...questionsList]
     newQuestions[questionIndex].answers[answerIndex] = {
       ...newQuestions[questionIndex].answers[answerIndex],
       [field]: value,
     }
-    setQuestions(newQuestions)
+    setQuestionsList(newQuestions)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -125,8 +189,8 @@ export default function CreateQuizPage() {
     }
 
     // Validate questions
-    for (let i = 0; i < questions.length; i++) {
-      const q = questions[i]
+    for (let i = 0; i < questionsList.length; i++) {
+      const q = questionsList[i]
       if (!q.questionText) {
         toast.error("Erreur", {
           description: `Question ${i + 1}: Le texte de la question est requis`,
@@ -168,12 +232,14 @@ export default function CreateQuizPage() {
           toast.error("Erreur", {
             description: "La date de début doit être antérieure à la date de fin",
           })
+          setIsSubmitting(false)
           return
         }
       }
 
-      // Create quiz
-      const quizId = await createQuiz({
+      // Update quiz
+      await updateQuiz({
+        quizId,
         title,
         description,
         lessonId,
@@ -186,28 +252,51 @@ export default function CreateQuizPage() {
         isPublished,
       })
 
-      // Add questions
-      for (const question of questions) {
-        await addQuestion({
-          quizId,
-          questionText: question.questionText,
-          answers: question.answers,
-          points: question.points,
-        })
+      // Update or add questions
+      for (let i = 0; i < questionsList.length; i++) {
+        const question = questionsList[i]
+        if (question._id) {
+          // Update existing question
+          await updateQuestion({
+            questionId: question._id,
+            questionText: question.questionText,
+            answers: question.answers,
+            points: question.points,
+          })
+        } else {
+          // Add new question
+          await addQuestion({
+            quizId,
+            questionText: question.questionText,
+            answers: question.answers,
+            points: question.points,
+          })
+        }
       }
 
       toast.success("Succès", {
-        description: "Le quiz a été créé avec succès",
+        description: "Le quiz a été mis à jour avec succès",
       })
 
       router.push("/user/quizzes")
     } catch (error: any) {
       toast.error("Erreur", {
-        description: error.message || "Une erreur est survenue lors de la création du quiz",
+        description: error.message || "Une erreur est survenue lors de la mise à jour du quiz",
       })
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (!quiz) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center space-y-3">
+          <Loader2 className="h-12 w-12 mx-auto text-muted-foreground animate-spin" />
+          <p className="text-muted-foreground">Chargement du quiz...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -219,9 +308,9 @@ export default function CreateQuizPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Créer un quiz</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Modifier le quiz</h1>
           <p className="text-muted-foreground mt-2">
-            Créer un nouveau quiz pour les bénéficiaires
+            Modifier les détails du quiz
           </p>
         </div>
       </div>
@@ -231,7 +320,7 @@ export default function CreateQuizPage() {
           <CardHeader>
             <CardTitle>Informations du quiz</CardTitle>
             <CardDescription>
-              Remplissez les détails du nouveau quiz
+              Modifiez les détails du quiz
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -405,15 +494,15 @@ export default function CreateQuizPage() {
           <CardHeader>
             <CardTitle>Questions</CardTitle>
             <CardDescription>
-              Ajoutez les questions du quiz avec leurs réponses
+              Modifiez les questions du quiz avec leurs réponses
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
-            {questions.map((question, qIndex) => (
+            {questionsList.map((question, qIndex) => (
               <div key={qIndex} className="p-4 border rounded-lg space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">Question {qIndex + 1}</h3>
-                  {questions.length > 1 && (
+                  {questionsList.length > 1 && (
                     <Button
                       type="button"
                       variant="ghost"
@@ -430,7 +519,7 @@ export default function CreateQuizPage() {
                   <Textarea
                     placeholder="Entrez votre question"
                     value={question.questionText}
-                    onChange={(e) => updateQuestion(qIndex, "questionText", e.target.value)}
+                    onChange={(e) => updateQuestionInList(qIndex, "questionText", e.target.value)}
                   />
                 </div>
 
@@ -440,7 +529,7 @@ export default function CreateQuizPage() {
                     type="number"
                     min="1"
                     value={question.points}
-                    onChange={(e) => updateQuestion(qIndex, "points", parseInt(e.target.value))}
+                    onChange={(e) => updateQuestionInList(qIndex, "points", parseInt(e.target.value))}
                   />
                 </div>
 
@@ -508,10 +597,10 @@ export default function CreateQuizPage() {
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Création en cours...
+                Mise à jour en cours...
               </>
             ) : (
-              "Créer le quiz"
+              "Mettre à jour le quiz"
             )}
           </Button>
         </div>

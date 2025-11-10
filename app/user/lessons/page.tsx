@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { BookOpen, Plus, Clock, Users, Globe, Building2, Home, Eye, EyeOff } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { fr } from "date-fns/locale"
+import Image from "next/image"
 
 export default function LessonsPage() {
   const lessons = useQuery(api.lessons.getLessons, {})
@@ -84,13 +85,25 @@ export default function LessonsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {lessons.map((lesson) => (
-            <Card key={lesson._id} className="flex flex-col hover:shadow-lg transition-shadow">
-              {lesson.imageUrl && (
+            <Card key={lesson._id} className="flex flex-col hover:shadow-lg transition-shadow pt-0">
+              {lesson.imageUrl ? (
                 <div className="relative w-full h-48 overflow-hidden rounded-t-lg">
-                  <img
+                  <Image
+                    width={100}
+                    height={100}
                     src={lesson.imageUrl}
                     alt={lesson.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-t-lg"
+                  />
+                </div>
+              ) : (
+                <div className="relative w-full h-48 overflow-hidden rounded-t-lg bg-blue-100">
+                  <Image
+                    width={100}
+                    height={100}
+                    src="/icon.png"
+                    alt="Placeholder"
+                    className="w-full h-full object-contain rounded-t-lg"
                   />
                 </div>
               )}

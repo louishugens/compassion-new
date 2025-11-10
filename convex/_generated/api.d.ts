@@ -13,6 +13,7 @@ import type * as bootstrap from "../bootstrap.js";
 import type * as lessons from "../lessons.js";
 import type * as myFunctions from "../myFunctions.js";
 import type * as organizations from "../organizations.js";
+import type * as quizzes from "../quizzes.js";
 import type * as users from "../users.js";
 
 import type {
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   lessons: typeof lessons;
   myFunctions: typeof myFunctions;
   organizations: typeof organizations;
+  quizzes: typeof quizzes;
   users: typeof users;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
