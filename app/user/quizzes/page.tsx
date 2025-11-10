@@ -14,7 +14,7 @@ import { fr } from "date-fns/locale"
 export default function QuizzesPage() {
   const quizzes = useQuery(api.quizzes.getQuizzes, {})
 
-  const getValidityStatus = (quiz: typeof quizzes[0]) => {
+  const getValidityStatus = (quiz: NonNullable<typeof quizzes>[number]) => {
     const now = Date.now()
     if (quiz.validFrom !== undefined && now < quiz.validFrom) {
       return { status: "upcoming" as const, message: `Disponible le ${format(quiz.validFrom, "dd/MM/yyyy à HH:mm", { locale: fr })}` }
