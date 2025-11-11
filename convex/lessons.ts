@@ -103,6 +103,115 @@ export const createLesson = mutation({
 });
 
 /**
+ * Update an existing lesson
+ */
+export const updateLesson = mutation({
+  args: {
+    lessonId: v.id('lessons'),
+    title: v.string(),
+    description: v.string(),
+    content: v.string(),
+    imageUrl: v.optional(v.string()),
+    videoUrl: v.optional(v.string()),
+    ageGroups: v.array(v.string()),
+    scope: v.union(v.literal('national'), v.literal('cluster'), v.literal('cdej')),
+    clusterId: v.optional(v.id('clusters')),
+    cdejId: v.optional(v.id('cdejs')),
+    isPublished: v.boolean(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // Get current user
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error('Not authenticated');
+    }
+
+    // Find user by workosUserId
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_workos_user_id', (q) => q.eq('workosUserId', identity.subject))
+      .unique();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Verify lesson exists
+    const lesson = await ctx.db.get(args.lessonId);
+    if (!lesson) {
+      throw new Error('Lesson not found');
+    }
+
+    // Check if user has permission to edit (must be creator or admin)
+    const userAssignment = await ctx.db
+      .query('userAssignments')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first();
+
+    if (!userAssignment) {
+      throw new Error('User has no organizational assignment');
+    }
+
+    // Only creator or admins can edit
+    if (lesson.createdBy !== user._id && 
+        userAssignment.role !== 'national_admin' && 
+        userAssignment.role !== 'cluster_admin') {
+      throw new Error('You do not have permission to edit this lesson');
+    }
+
+    // Validate scope-specific rules
+    if (args.scope === 'national') {
+      if (userAssignment.role !== 'national_admin') {
+        throw new Error('Only national admins can create national lessons');
+      }
+    } else if (args.scope === 'cluster') {
+      if (userAssignment.role !== 'cluster_admin' && userAssignment.role !== 'national_admin') {
+        throw new Error('Only cluster or national admins can create cluster lessons');
+      }
+      if (!args.clusterId) {
+        throw new Error('clusterId is required for cluster scope');
+      }
+      if (userAssignment.role === 'cluster_admin' && userAssignment.clusterId !== args.clusterId) {
+        throw new Error('You can only create lessons for your assigned cluster');
+      }
+    } else if (args.scope === 'cdej') {
+      if (
+        userAssignment.role !== 'cdej_admin' &&
+        userAssignment.role !== 'cluster_admin' &&
+        userAssignment.role !== 'national_admin'
+      ) {
+        throw new Error('Only CDEJ, cluster, or national admins can create CDEJ lessons');
+      }
+      if (!args.cdejId) {
+        throw new Error('cdejId is required for cdej scope');
+      }
+      if (userAssignment.role === 'cdej_admin' && userAssignment.cdejId !== args.cdejId) {
+        throw new Error('You can only create lessons for your assigned CDEJ');
+      }
+    }
+
+    // Update the lesson
+    await ctx.db.patch(args.lessonId, {
+      title: args.title,
+      description: args.description,
+      content: args.content,
+      imageUrl: args.imageUrl,
+      videoUrl: args.videoUrl,
+      ageGroups: args.ageGroups,
+      scope: args.scope,
+      clusterId: args.clusterId,
+      cdejId: args.cdejId,
+      isPublished: args.isPublished,
+      updatedAt: Date.now(),
+      updatedBy: user._id,
+    });
+
+    return null;
+  },
+});
+
+/**
  * Get lessons visible to the current user
  */
 export const getLessons = query({

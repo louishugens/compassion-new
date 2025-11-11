@@ -33,6 +33,14 @@ type LessonOption = Pick<Doc<"lessons">, "_id" | "title">
 type ClusterOption = { _id: Id<"clusters">; name: string }
 type CdejOption = { _id: Id<"cdejs">; name: string }
 
+const AGE_GROUPS = [
+  { value: "0-5", label: "0-5 ans" },
+  { value: "6-10", label: "6-10 ans" },
+  { value: "11-15", label: "11-15 ans" },
+  { value: "16-18", label: "16-18 ans" },
+  { value: "19+", label: "19+ ans" },
+]
+
 export default function EditQuizPage() {
   const params = useParams()
   const router = useRouter()
@@ -57,6 +65,7 @@ export default function EditQuizPage() {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [passingScore, setPassingScore] = useState("70")
+  const [ageGroups, setAgeGroups] = useState<string[]>([])
   const [scope, setScope] = useState<"national" | "cluster" | "cdej">("national")
   const [clusterId, setClusterId] = useState<Id<"clusters"> | undefined>()
   const [cdejId, setCdejId] = useState<Id<"cdejs"> | undefined>()
@@ -72,6 +81,7 @@ export default function EditQuizPage() {
       setTitle(quiz.title)
       setDescription(quiz.description)
       setPassingScore(quiz.passingScore.toString())
+      setAgeGroups(quiz.ageGroups || [])
       setScope(quiz.scope)
       setClusterId(quiz.clusterId)
       setCdejId(quiz.cdejId)
@@ -178,12 +188,33 @@ export default function EditQuizPage() {
     setQuestionsList(newQuestions)
   }
 
+  const toggleAgeGroup = (value: string) => {
+    setAgeGroups((current) =>
+      current.includes(value) ? current.filter((v) => v !== value) : [...current, value]
+    )
+  }
+
+  const toggleAllAgeGroups = () => {
+    if (ageGroups.length === AGE_GROUPS.length) {
+      setAgeGroups([])
+    } else {
+      setAgeGroups(AGE_GROUPS.map((g) => g.value))
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!title || !description) {
       toast.error("Erreur", {
         description: "Veuillez remplir tous les champs requis",
+      })
+      return
+    }
+
+    if (ageGroups.length === 0) {
+      toast.error("Erreur", {
+        description: "Veuillez sélectionner au moins un groupe d'âge",
       })
       return
     }
@@ -244,6 +275,7 @@ export default function EditQuizPage() {
         description,
         lessonId,
         passingScore: parseInt(passingScore),
+        ageGroups,
         scope,
         clusterId,
         cdejId,
@@ -358,6 +390,42 @@ export default function EditQuizPage() {
                 onChange={(e) => setPassingScore(e.target.value)}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Groupes d'âge *</Label>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={ageGroups.length === AGE_GROUPS.length}
+                    onCheckedChange={toggleAllAgeGroups}
+                  />
+                  <Label htmlFor="select-all" className="text-sm font-normal cursor-pointer">
+                    Sélectionner tout
+                  </Label>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {AGE_GROUPS.map((group) => (
+                  <button
+                    key={group.value}
+                    type="button"
+                    onClick={() => toggleAgeGroup(group.value)}
+                    className={`px-4 py-2 rounded-md border transition-colors ${
+                      ageGroups.includes(group.value)
+                        ? "bg-blue-800 text-white border-blue-800"
+                        : "bg-background hover:bg-accent"
+                    }`}
+                  >
+                    {group.label}
+                  </button>
+                ))}
+              </div>
+              {ageGroups.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Sélectionnez au moins un groupe d'âge
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

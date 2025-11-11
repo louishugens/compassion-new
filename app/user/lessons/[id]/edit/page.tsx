@@ -1,12 +1,12 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowLeft, X, Loader2 } from "lucide-react"
+import { ArrowLeft, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import FileUpload from "@/components/FileUpload"
@@ -17,7 +17,6 @@ import * as z from "zod"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -32,6 +31,7 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
+import { Id } from "@/convex/_generated/dataModel"
 
 const formSchema = z.object({
   title: z.string().min(1, "Le titre est requis"),
@@ -56,9 +56,13 @@ const AGE_GROUPS = [
   { value: "19+", label: "19+ ans" },
 ]
 
-export default function CreateLessonPage() {
+export default function EditLessonPage() {
+  const params = useParams()
   const router = useRouter()
-  const createLesson = useMutation(api.lessons.createLesson)
+  const lessonId = params.id as Id<"lessons">
+
+  const lesson = useQuery(api.lessons.getLesson, { lessonId })
+  const updateLesson = useMutation(api.lessons.updateLesson)
   const clusters = useQuery(api.lessons.getClusters)
   const userInfo = useQuery(api.lessons.getCurrentUserInfo)
 
@@ -86,6 +90,24 @@ export default function CreateLessonPage() {
     selectedClusterId ? { clusterId: selectedClusterId as any } : "skip"
   )
 
+  // Load lesson data when available
+  useEffect(() => {
+    if (lesson) {
+      form.reset({
+        title: lesson.title,
+        description: lesson.description,
+        content: lesson.content,
+        ageGroups: lesson.ageGroups || [],
+        scope: lesson.scope,
+        clusterId: lesson.clusterId || "",
+        cdejId: lesson.cdejId || "",
+        imageUrl: lesson.imageUrl || "",
+        videoUrl: lesson.videoUrl || "",
+        isPublished: lesson.isPublished,
+      })
+    }
+  }, [lesson, form])
+
   // Determine available scope options based on user role
   const availableScopeOptions = useMemo(() => {
     if (!userInfo) return []
@@ -110,21 +132,6 @@ export default function CreateLessonPage() {
     return options
   }, [userInfo])
 
-  // Auto-select cluster and cdej for non-national admins
-  React.useEffect(() => {
-    if (userInfo) {
-      if (userInfo.role === "cluster_admin" && userInfo.clusterId) {
-        form.setValue("clusterId", userInfo.clusterId)
-      }
-      if (userInfo.role === "cdej_admin" && userInfo.cdejId) {
-        form.setValue("cdejId", userInfo.cdejId)
-        if (userInfo.clusterId) {
-          form.setValue("clusterId", userInfo.clusterId)
-        }
-      }
-    }
-  }, [userInfo, form])
-
   const toggleAgeGroup = (value: string) => {
     const current = form.getValues("ageGroups")
     const updated = current.includes(value)
@@ -144,7 +151,8 @@ export default function CreateLessonPage() {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      await createLesson({
+      await updateLesson({
+        lessonId,
         title: values.title,
         description: values.description,
         content: values.content,
@@ -157,13 +165,23 @@ export default function CreateLessonPage() {
         isPublished: values.isPublished,
       })
 
-      toast.success("Leçon créée avec succès!")
-      form.reset()
+      toast.success("Leçon mise à jour avec succès!")
       router.push("/user/lessons")
     } catch (error) {
-      console.error("Error creating lesson:", error)
-      toast.error("Erreur lors de la création de la leçon: " + (error as Error).message)
+      console.error("Error updating lesson:", error)
+      toast.error("Erreur lors de la mise à jour de la leçon: " + (error as Error).message)
     }
+  }
+
+  if (!lesson) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center space-y-3">
+          <Loader2 className="h-12 w-12 mx-auto text-muted-foreground animate-spin" />
+          <p className="text-muted-foreground">Chargement de la leçon...</p>
+        </div>
+      </div>
+    )
   }
 
   if (!userInfo) {
@@ -177,28 +195,28 @@ export default function CreateLessonPage() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pb-8">
-      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild type="button">
-          <Link href="/user/lessons">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Créer une leçon</h1>
-          <p className="text-muted-foreground mt-2">
-            Créer une nouvelle leçon pour les bénéficiaires
-          </p>
+            <Link href="/user/lessons">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Modifier la leçon</h1>
+            <p className="text-muted-foreground mt-2">
+              Modifier les détails de la leçon
+            </p>
+          </div>
         </div>
-      </div>
 
-      <Card>
-        <CardHeader>
+        <Card>
+          <CardHeader>
             <CardTitle>Informations de base</CardTitle>
-          <CardDescription>
-            Remplissez les détails de la nouvelle leçon
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+            <CardDescription>
+              Modifiez les détails de la leçon
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
             <FormField
               control={form.control}
               name="title"
@@ -251,7 +269,7 @@ export default function CreateLessonPage() {
           <CardHeader>
             <CardTitle>Médias</CardTitle>
             <CardDescription>
-              Ajoutez des images ou vidéos à la leçon (optionnel)
+              Modifiez les images ou vidéos de la leçon (optionnel)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -299,7 +317,7 @@ export default function CreateLessonPage() {
           <CardHeader>
             <CardTitle>Public cible</CardTitle>
             <CardDescription>
-              Sélectionnez les groupes d'âge et la portée de la leçon
+              Modifiez les groupes d'âge et la portée de la leçon
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -351,7 +369,7 @@ export default function CreateLessonPage() {
                   <FormLabel>Portée *</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                     disabled={availableScopeOptions.length === 1}
                   >
                     <FormControl>
@@ -395,7 +413,7 @@ export default function CreateLessonPage() {
                       <SelectContent>
                         {clusters?.map((cluster) => (
                           <SelectItem key={cluster._id} value={cluster._id}>
-                            {cluster.name} ({cluster._id})
+                            {cluster.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -426,7 +444,7 @@ export default function CreateLessonPage() {
                       <SelectContent>
                         {cdejs?.map((cdej) => (
                           <SelectItem key={cdej._id} value={cdej._id}>
-                            {cdej.name} ({cdej._id})
+                            {cdej.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -467,23 +485,23 @@ export default function CreateLessonPage() {
               )}
             />
 
-          <div className="flex justify-end gap-4">
-            <Button variant="outline" asChild type="button" className="outline-blue-800 hover:bg-blue-200 text-blue-800 rounded-full">
-              <Link href="/user/lessons">Annuler</Link>
-            </Button>
+            <div className="flex justify-end gap-4">
+              <Button variant="outline" asChild type="button" className="outline-blue-800 hover:bg-blue-200 text-blue-800 rounded-full">
+                <Link href="/user/lessons">Annuler</Link>
+              </Button>
               <Button type="submit" disabled={form.formState.isSubmitting} className="bg-blue-800 hover:bg-blue-700 text-white rounded-full">
                 {form.formState.isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Création en cours...
+                    Mise à jour en cours...
                   </>
                 ) : (
-                  "Créer la leçon"
+                  "Mettre à jour la leçon"
                 )}
               </Button>
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          </CardContent>
+        </Card>
       </form>
     </Form>
   )

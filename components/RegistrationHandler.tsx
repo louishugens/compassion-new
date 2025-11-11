@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Toaster } from '@/components/ui/sonner';
+
 
 /**
  * Component that handles user registration completion after WorkOS authentication
@@ -92,7 +92,7 @@ export function RegistrationHandler({ children }: { children: React.ReactNode })
   if (isCompleting) {
     return (
       <>
-        <Toaster />
+        
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
           <Card className="w-full max-w-md">
             <CardContent className="pt-6">
@@ -111,7 +111,7 @@ export function RegistrationHandler({ children }: { children: React.ReactNode })
   if (error) {
     return (
       <>
-        <Toaster />
+        
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
           <Card className="w-full max-w-md">
             <CardContent className="pt-6 space-y-4">
@@ -132,7 +132,7 @@ export function RegistrationHandler({ children }: { children: React.ReactNode })
   // User is registered or doesn't need registration - render children
   return (
     <>
-      <Toaster />
+      
       {children}
     </>
   );

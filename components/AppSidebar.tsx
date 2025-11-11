@@ -19,6 +19,7 @@ import {
   ChevronUp,
   User2,
   Settings,
+  Trophy,
 } from "lucide-react"
 import {
   Sidebar,
@@ -67,7 +68,7 @@ const navigationGroups = [
         title: "Voir les leçons",
         url: "/user/lessons",
         icon: BookOpen,
-        roles: ["national_admin", "cluster_admin", "cdej_admin", "cdej_staff", "cdej_monitor"] as Role[],
+        roles: ["national_admin", "cluster_admin", "cdej_admin", "cdej_staff", "cdej_monitor", "beneficiary"] as Role[],
       },
     ],
   },
@@ -84,7 +85,13 @@ const navigationGroups = [
         title: "Voir les quiz",
         url: "/user/quizzes",
         icon: List,
-        roles: ["national_admin", "cluster_admin", "cdej_admin", "cdej_staff", "cdej_monitor"] as Role[],
+        roles: ["national_admin", "cluster_admin", "cdej_admin", "cdej_staff", "cdej_monitor", "beneficiary"] as Role[],
+      },
+      {
+        title: "Mes résultats",
+        url: "/user/quizzes/results",
+        icon: Trophy,
+        roles: ["national_admin", "cluster_admin", "cdej_admin", "cdej_staff", "cdej_monitor", "beneficiary"] as Role[],
       },
     ],
   },

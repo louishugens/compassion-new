@@ -52,6 +52,8 @@ export default defineSchema({
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
     profilePictureUrl: v.optional(v.string()),
+    // Profile data
+    birthDate: v.optional(v.number()), // Timestamp of birth date
     // Status
     profileComplete: v.boolean(),
     isActive: v.boolean(),
@@ -146,6 +148,8 @@ export default defineSchema({
     lessonId: v.optional(v.id('lessons')), // Optional: quiz can be standalone or linked to a lesson
     // Pass criteria
     passingScore: v.number(), // Minimum percentage to pass (0-100)
+    // Target audience
+    ageGroups: v.array(v.string()), // e.g., ["6-10", "11-15", "16-18"]
     // Organizational scope (inherited from lesson or standalone)
     scope: v.union(
       v.literal('national'),

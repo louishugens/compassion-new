@@ -9,12 +9,13 @@ import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Calendar } from "lucide-react"
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Calendar, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { Id } from "@/convex/_generated/dataModel"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 type QuizQuestionForAttempt = {
   _id: Id<"questions">
@@ -32,6 +33,8 @@ export default function TakeQuizPage() {
   const quiz = useQuery(api.quizzes.getQuiz, { quizId })
   const questions = useQuery(api.quizzes.getQuestionsForAttempt, { quizId })
   const submitQuizAttempt = useMutation(api.quizzes.submitQuizAttempt)
+  const userInfo = useQuery(api.lessons.getCurrentUserInfo)
+  const isBeneficiary = userInfo?.role === "beneficiary"
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, number>>({})
@@ -49,6 +52,29 @@ export default function TakeQuizPage() {
           <Loader2 className="h-12 w-12 mx-auto text-muted-foreground animate-spin" />
           <p className="text-muted-foreground">Chargement du quiz...</p>
         </div>
+      </div>
+    )
+  }
+
+  // Check if non-beneficiary is trying to take a quiz they didn't create
+  const isCreator = quiz.createdBy === userInfo?.userId
+  if (!isBeneficiary && !isCreator) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/user/quizzes">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Accès non autorisé</AlertTitle>
+          <AlertDescription>
+            Seuls les bénéficiaires peuvent passer les quiz. Vous ne pouvez tester que les quiz que vous avez créés.
+          </AlertDescription>
+        </Alert>
       </div>
     )
   }

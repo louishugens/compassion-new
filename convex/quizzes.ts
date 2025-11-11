@@ -11,6 +11,7 @@ export const createQuiz = mutation({
     description: v.string(),
     lessonId: v.optional(v.id('lessons')),
     passingScore: v.number(),
+    ageGroups: v.array(v.string()),
     scope: v.union(v.literal('national'), v.literal('cluster'), v.literal('cdej')),
     clusterId: v.optional(v.id('clusters')),
     cdejId: v.optional(v.id('cdejs')),
@@ -82,6 +83,11 @@ export const createQuiz = mutation({
       throw new Error('Passing score must be between 0 and 100');
     }
 
+    // Validate age groups
+    if (args.ageGroups.length === 0) {
+      throw new Error('At least one age group must be selected');
+    }
+
     // Validate validity period
     if (args.validFrom !== undefined && args.validUntil !== undefined) {
       if (args.validFrom >= args.validUntil) {
@@ -95,6 +101,7 @@ export const createQuiz = mutation({
       description: args.description,
       lessonId: args.lessonId,
       passingScore: args.passingScore,
+      ageGroups: args.ageGroups,
       scope: args.scope,
       clusterId: args.clusterId,
       cdejId: args.cdejId,
@@ -119,6 +126,7 @@ export const updateQuiz = mutation({
     description: v.string(),
     lessonId: v.optional(v.id('lessons')),
     passingScore: v.number(),
+    ageGroups: v.array(v.string()),
     scope: v.union(v.literal('national'), v.literal('cluster'), v.literal('cdej')),
     clusterId: v.optional(v.id('clusters')),
     cdejId: v.optional(v.id('cdejs')),
@@ -203,6 +211,11 @@ export const updateQuiz = mutation({
       throw new Error('Passing score must be between 0 and 100');
     }
 
+    // Validate age groups
+    if (args.ageGroups.length === 0) {
+      throw new Error('At least one age group must be selected');
+    }
+
     // Validate validity period
     if (args.validFrom !== undefined && args.validUntil !== undefined) {
       if (args.validFrom >= args.validUntil) {
@@ -216,6 +229,7 @@ export const updateQuiz = mutation({
       description: args.description,
       lessonId: args.lessonId,
       passingScore: args.passingScore,
+      ageGroups: args.ageGroups,
       scope: args.scope,
       clusterId: args.clusterId,
       cdejId: args.cdejId,
@@ -400,6 +414,7 @@ export const getQuizzes = query({
       description: v.string(),
       lessonId: v.optional(v.id('lessons')),
       passingScore: v.number(),
+      ageGroups: v.array(v.string()),
       scope: v.union(v.literal('national'), v.literal('cluster'), v.literal('cdej')),
       clusterId: v.optional(v.id('clusters')),
       cdejId: v.optional(v.id('cdejs')),
@@ -514,6 +529,7 @@ export const getQuiz = query({
       description: v.string(),
       lessonId: v.optional(v.id('lessons')),
       passingScore: v.number(),
+      ageGroups: v.array(v.string()),
       scope: v.union(v.literal('national'), v.literal('cluster'), v.literal('cdej')),
       clusterId: v.optional(v.id('clusters')),
       cdejId: v.optional(v.id('cdejs')),
@@ -732,6 +748,7 @@ export const getMyAttempts = query({
       _creationTime: v.number(),
       quizId: v.id('quizzes'),
       quizTitle: v.string(),
+      quizCreatedBy: v.id('users'), // Creator ID to identify test attempts
       score: v.number(),
       maxScore: v.number(),
       percentage: v.number(),
@@ -768,7 +785,7 @@ export const getMyAttempts = query({
       filteredAttempts = attempts.filter((attempt) => attempt.quizId === args.quizId);
     }
 
-    // Add quiz title to each attempt
+    // Add quiz title and creator info to each attempt
     const attemptsWithQuizInfo: Array<any> = [];
     for (const attempt of filteredAttempts) {
       const quiz = await ctx.db.get(attempt.quizId);
@@ -778,6 +795,7 @@ export const getMyAttempts = query({
           _creationTime: attempt._creationTime,
           quizId: attempt.quizId,
           quizTitle: quiz.title,
+          quizCreatedBy: quiz.createdBy, // Include creator to filter out test attempts
           score: attempt.score,
           maxScore: attempt.maxScore,
           percentage: attempt.percentage,
@@ -925,6 +943,44 @@ export const getQuizStatistics = query({
       passRate,
       averageTimeSpent,
     };
+  },
+});
+
+/**
+ * Migration: Add ageGroups to all existing quizzes that don't have it
+ * This adds all age groups ["0-5", "6-10", "11-15", "16-18", "19+"] to quizzes missing this field
+ * Can be removed after running once
+ */
+export const migrateAddAgeGroupsToQuizzes = mutation({
+  args: {},
+  returns: v.object({
+    updated: v.number(),
+    skipped: v.number(),
+  }),
+  handler: async (ctx) => {
+    // Temporarily allow running without auth for one-time migration
+    // TODO: Remove this migration function after running it successfully
+    
+    // Get all quizzes
+    const allQuizzes = await ctx.db.query('quizzes').collect();
+    
+    const allAgeGroups = ["0-5", "6-10", "11-15", "16-18", "19+"];
+    let updated = 0;
+    let skipped = 0;
+
+    for (const quiz of allQuizzes) {
+      // Check if quiz has ageGroups field (it might be undefined or missing)
+      if (!quiz.ageGroups || quiz.ageGroups.length === 0) {
+        await ctx.db.patch(quiz._id, {
+          ageGroups: allAgeGroups,
+        });
+        updated++;
+      } else {
+        skipped++;
+      }
+    }
+
+    return { updated, skipped };
   },
 });
 

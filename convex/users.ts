@@ -117,6 +117,7 @@ export const getCurrentUserWithAssignments = query({
       firstName: v.optional(v.string()),
       lastName: v.optional(v.string()),
       profilePictureUrl: v.optional(v.string()),
+      birthDate: v.optional(v.number()),
       profileComplete: v.boolean(),
       isActive: v.boolean(),
       createdAt: v.number(),
@@ -171,6 +172,7 @@ export const completeRegistration = mutation({
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
     profilePictureUrl: v.optional(v.string()),
+    birthDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -225,6 +227,7 @@ export const completeRegistration = mutation({
       firstName: args.firstName,
       lastName: args.lastName,
       profilePictureUrl: args.profilePictureUrl,
+      birthDate: args.birthDate,
       profileComplete: true,
       isActive: true,
       createdAt: Date.now(),
@@ -248,6 +251,84 @@ export const completeRegistration = mutation({
     return { userId, role: accessCode.role };
   },
 });
+
+/**
+ * Update user profile information
+ * Updates firstName, lastName, profilePictureUrl, and birthDate for the current user
+ */
+export const updateUser = mutation({
+  args: {
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    profilePictureUrl: v.optional(v.string()),
+    birthDate: v.optional(v.number()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error('Not authenticated');
+    }
+
+    // Find user by workosUserId
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_workos_user_id', (q) => q.eq('workosUserId', identity.subject))
+      .unique();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Update user profile
+    const updateData: any = {};
+    if (args.firstName !== undefined) {
+      updateData.firstName = args.firstName;
+    }
+    if (args.lastName !== undefined) {
+      updateData.lastName = args.lastName;
+    }
+    if (args.profilePictureUrl !== undefined) {
+      updateData.profilePictureUrl = args.profilePictureUrl;
+    }
+    if (args.birthDate !== undefined) {
+      updateData.birthDate = args.birthDate;
+    }
+
+    await ctx.db.patch(user._id, updateData);
+
+    return null;
+  },
+});
+
+/**
+ * Calculate age group from birth date
+ * Returns age group string like "6-10", "11-15", etc.
+ */
+export function calculateAgeGroup(birthDate: number): string {
+  const today = new Date();
+  const birth = new Date(birthDate);
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+
+  if (age < 0) {
+    return '0-5'; // Handle future dates
+  } else if (age <= 5) {
+    return '0-5';
+  } else if (age <= 10) {
+    return '6-10';
+  } else if (age <= 15) {
+    return '11-15';
+  } else if (age <= 18) {
+    return '16-18';
+  } else {
+    return '19+';
+  }
+}
 
 /**
  * Create a single access code

@@ -47,7 +47,7 @@ export default function UserLayout({
             {children}
           </div>
         </SidebarInset>
-        <Toaster position="top-right" richColors />
+        <Toaster position="top-center" richColors />
       </SidebarProvider>
     </RoleProtection>
   )
