@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { mutation } from './_generated/server';
+import { internal } from './_generated/api';
 
 /**
  * Generate a random access code
@@ -73,6 +74,12 @@ export const createNationalAdmin = mutation({
       status: 'pending',
       role: 'national_admin',
       createdAt: Date.now(),
+    });
+
+    // Schedule email to be sent
+    await ctx.scheduler.runAfter(0, internal.emails.sendAccessCodeEmail, {
+      email: args.email.toLowerCase(),
+      code,
     });
 
     return {

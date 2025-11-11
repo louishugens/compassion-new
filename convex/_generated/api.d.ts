@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as bootstrap from "../bootstrap.js";
+import type * as emails from "../emails.js";
 import type * as lessons from "../lessons.js";
 import type * as myFunctions from "../myFunctions.js";
 import type * as organizations from "../organizations.js";
@@ -33,6 +34,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   bootstrap: typeof bootstrap;
+  emails: typeof emails;
   lessons: typeof lessons;
   myFunctions: typeof myFunctions;
   organizations: typeof organizations;

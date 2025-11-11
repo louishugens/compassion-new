@@ -79,6 +79,19 @@ const cdejFormSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
+// Helper function to extract user-friendly error messages from Convex errors
+const getErrorMessage = (error: unknown, defaultMessage: string): string => {
+  const errorMessage = error instanceof Error ? error.message : String(error)
+  return errorMessage
+    .replace(/\[CONVEX.*?\]/g, '')
+    .replace(/\[Request ID:.*?\]/g, '')
+    .replace(/Server Error Uncaught Error:/g, '')
+    .replace(/at handler.*/g, '')
+    .replace(/Called by.*/g, '')
+    .trim()
+    || defaultMessage
+}
+
 const ROLES: Array<{ value: Role; label: string; enabled: boolean }> = [
   { value: "national_admin", label: "Administrateur National", enabled: true },
   { value: "cluster_admin", label: "Administrateur Cluster", enabled: false },
@@ -160,11 +173,14 @@ export default function UsersPage() {
         cdejId: values.cdejId ? (values.cdejId as Id<"cdejs">) : undefined,
       })
       setGeneratedCode(result.code)
-      toast.success("Code d'accès créé avec succès!")
+      toast.success("Code d'accès créé avec succès!", { id: "create-code-success" })
       form.reset()
     } catch (error) {
       console.error("Error creating access code:", error)
-      toast.error("Erreur lors de la création du code: " + (error as Error).message)
+      toast.error(
+        getErrorMessage(error, "Une erreur s'est produite lors de la création du code"),
+        { id: "create-code-error" }
+      )
     }
   }
 
@@ -190,14 +206,17 @@ export default function UsersPage() {
         clusterId: values.clusterId as Id<"clusters">,
         description: values.description || undefined,
       })
-      toast.success("CDEJ créé avec succès!")
+      toast.success("CDEJ créé avec succès!", { id: "create-cdej-success" })
       setIsCdejDialogOpen(false)
       cdejForm.reset()
       // Automatically select the newly created CDEJ
       form.setValue("cdejId", result.cdejId)
     } catch (error) {
       console.error("Error creating CDEJ:", error)
-      toast.error("Erreur lors de la création du CDEJ: " + (error as Error).message)
+      toast.error(
+        getErrorMessage(error, "Une erreur s'est produite lors de la création du CDEJ"),
+        { id: "create-cdej-error" }
+      )
     }
   }
 
@@ -211,12 +230,15 @@ export default function UsersPage() {
     
     try {
       await revokeAccessCode({ codeId: codeToRevoke })
-      toast.success("Code d'accès révoqué avec succès!")
+      toast.success("Code d'accès révoqué avec succès!", { id: "revoke-code-success" })
       setIsRevokeDialogOpen(false)
       setCodeToRevoke(null)
     } catch (error) {
       console.error("Error revoking access code:", error)
-      toast.error("Erreur lors de la révocation du code: " + (error as Error).message)
+      toast.error(
+        getErrorMessage(error, "Une erreur s'est produite lors de la révocation du code"),
+        { id: "revoke-code-error" }
+      )
     }
   }
 

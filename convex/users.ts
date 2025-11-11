@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 import { query, mutation } from './_generated/server';
 import { getCurrentUser, requireAuth} from './auth';
+import { internal } from './_generated/api';
 
 
 /**
@@ -356,6 +357,12 @@ export const createAccessCode = mutation({
       createdBy: currentUser._id,
     });
 
+    // Schedule email to be sent
+    await ctx.scheduler.runAfter(0, internal.emails.sendAccessCodeEmail, {
+      email: args.email.toLowerCase(),
+      code: code!,
+    });
+
     return { codeId, code: code! };
   },
 });
@@ -432,6 +439,12 @@ export const bulkCreateAccessCodes = mutation({
           cdejId,
           createdAt: Date.now(),
           createdBy: currentUser._id,
+        });
+
+        // Schedule email to be sent
+        await ctx.scheduler.runAfter(0, internal.emails.sendAccessCodeEmail, {
+          email: codeData.email.toLowerCase(),
+          code: code!,
         });
 
         results.push({ email: codeData.email, code: code!, codeId });
