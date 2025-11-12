@@ -218,4 +218,20 @@ export default defineSchema({
     .index('by_user', ['userId'])
     .index('by_quiz_and_user', ['quizId', 'userId'])
     .index('by_user_and_completed', ['userId', 'completedAt']),
+
+  // Lesson chunks - vectorized content for RAG
+  lessonChunks: defineTable({
+    lessonId: v.id('lessons'),
+    chunkIndex: v.number(), // Order of chunk within lesson
+    text: v.string(), // Plain text content (HTML stripped)
+    embedding: v.array(v.number()), // Vector embedding
+    createdAt: v.number(),
+  })
+    .index('by_lesson', ['lessonId'])
+    .index('by_lesson_and_index', ['lessonId', 'chunkIndex'])
+    .vectorIndex('embedding', {
+      vectorField: 'embedding',
+      dimensions: 1536, // OpenAI text-embedding-3-small dimensions
+      filterFields: ['lessonId'],
+    }),
 });

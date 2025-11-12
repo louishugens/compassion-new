@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
 import { Id } from './_generated/dataModel';
+import { internal } from './_generated/api';
 
 /**
  * Create a new lesson
@@ -97,6 +98,13 @@ export const createLesson = mutation({
       createdAt: Date.now(),
       createdBy: user._id,
     });
+
+    // Vectorize lesson content for RAG (run asynchronously)
+    if (args.isPublished) {
+      await ctx.scheduler.runAfter(0, internal.lessonRagActions.vectorizeLesson, {
+        lessonId,
+      });
+    }
 
     return lessonId;
   },
@@ -206,6 +214,13 @@ export const updateLesson = mutation({
       updatedAt: Date.now(),
       updatedBy: user._id,
     });
+
+    // Re-vectorize lesson content if published (run asynchronously)
+    if (args.isPublished) {
+      await ctx.scheduler.runAfter(0, internal.lessonRagActions.vectorizeLesson, {
+        lessonId: args.lessonId,
+      });
+    }
 
     return null;
   },
