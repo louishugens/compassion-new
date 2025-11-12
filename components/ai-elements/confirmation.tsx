@@ -39,9 +39,17 @@ type ToolUIPartApproval =
     }
   | undefined;
 
+// Valid states after filtering out "input-streaming" and "input-available"
+type ConfirmationState =
+  | "approval-requested"
+  | "approval-responded"
+  | "output-available"
+  | "output-error"
+  | "output-denied";
+
 type ConfirmationContextValue = {
   approval: ToolUIPartApproval;
-  state: ToolUIPart["state"];
+  state: ConfirmationState;
 };
 
 const ConfirmationContext = createContext<ConfirmationContextValue | null>(
@@ -74,7 +82,9 @@ export const Confirmation = ({
   }
 
   return (
-    <ConfirmationContext.Provider value={{ approval, state }}>
+    <ConfirmationContext.Provider
+      value={{ approval, state: state as ConfirmationState }}
+    >
       <Alert className={cn("flex flex-col gap-2", className)} {...props} />
     </ConfirmationContext.Provider>
   );
@@ -97,11 +107,11 @@ export const ConfirmationRequest = ({ children }: ConfirmationRequestProps) => {
   const { state } = useConfirmation();
 
   // Only show when approval is requested
-  if (state !== "approval-requested") {
-    return null;
+  if (state === "approval-requested") {
+    return children;
   }
 
-  return children;
+  return null;
 };
 
 export type ConfirmationAcceptedProps = {
@@ -157,16 +167,16 @@ export const ConfirmationActions = ({
   const { state } = useConfirmation();
 
   // Only show when approval is requested
-  if (state !== "approval-requested") {
-    return null;
+  if (state === "approval-requested") {
+    return (
+      <div
+        className={cn("flex items-center justify-end gap-2 self-end", className)}
+        {...props}
+      />
+    );
   }
 
-  return (
-    <div
-      className={cn("flex items-center justify-end gap-2 self-end", className)}
-      {...props}
-    />
-  );
+  return null;
 };
 
 export type ConfirmationActionProps = ComponentProps<typeof Button>;
