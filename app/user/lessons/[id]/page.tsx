@@ -1,28 +1,62 @@
 "use client"
 
-import { useParams } from "next/navigation"
-import { useQuery } from "convex/react"
+import { useParams, useRouter } from "next/navigation"
+import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Loader2, MessageCircle, Users, Clock, Globe, Building2, Home, Edit, CheckCircle2, XCircle } from "lucide-react"
+import { ArrowLeft, Loader2, MessageCircle, Users, Clock, Globe, Building2, Home, Edit, CheckCircle2, XCircle, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { Id } from "@/convex/_generated/dataModel"
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { LessonChatbotModal } from "@/components/lesson-chatbot-modal"
 import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useState } from "react"
 import { formatDistanceToNow } from "date-fns"
 import { fr } from "date-fns/locale"
+import { toast } from "sonner"
 
 export default function LessonPage() {
   const params = useParams()
+  const router = useRouter()
   const lessonId = params.id as Id<"lessons">
   const [chatbotOpen, setChatbotOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   
   const lesson = useQuery(api.lessons.getLesson, { lessonId })
   const userInfo = useQuery(api.lessons.getCurrentUserInfo)
+  const deleteLesson = useMutation(api.lessons.deleteLesson)
   const isBeneficiary = userInfo?.role === "beneficiary"
+
+  // Check if user can delete the lesson (creator, national_admin, or cluster_admin)
+  const canDelete = lesson && userInfo && (
+    lesson.createdBy === userInfo.userId ||
+    userInfo.role === "national_admin" ||
+    userInfo.role === "cluster_admin"
+  )
+
+  const handleDeleteConfirm = async () => {
+    if (!lesson) return
+
+    try {
+      await deleteLesson({ lessonId })
+      toast.success("Leçon supprimée avec succès")
+      setDeleteDialogOpen(false)
+      router.push("/user/lessons")
+    } catch (error) {
+      toast.error("Erreur", {
+        description: error instanceof Error ? error.message : "Erreur lors de la suppression de la leçon",
+      })
+    }
+  }
 
   const getScopeIcon = (scope: string) => {
     switch (scope) {
@@ -109,9 +143,9 @@ export default function LessonPage() {
 
         {/* Title and Description */}
         <div className="max-w-3xl mx-auto space-y-4">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">{lesson.title}</h1>
+          <h1 className="text-lg md:text-3xl font-bold tracking-tight">{lesson.title}</h1>
           {lesson.description && (
-            <p className="text-xl text-muted-foreground">{lesson.description}</p>
+            <p className="text-sm md:text-base text-muted-foreground">{lesson.description}</p>
           )}
 
           {/* Content */}
@@ -169,20 +203,61 @@ export default function LessonPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-2">{lesson.title}</h1>
+          <h1 className="text-lg md:text-3xl font-bold tracking-tight mb-2">{lesson.title}</h1>
           {lesson.description && (
-            <p className="text-xl text-muted-foreground">{lesson.description}</p>
+            <p className="text-sm md:text-base text-muted-foreground">{lesson.description}</p>
           )}
         </div>
 
-        {/* Edit Button */}
-        <Button asChild className="bg-blue-800 hover:bg-blue-700 text-white rounded-full">
-          <Link href={`/user/lessons/${lessonId}/edit`}>
-            <Edit className="mr-2 h-4 w-4" />
-            Modifier
-          </Link>
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          {/* Edit Button */}
+          <Button asChild className="bg-blue-800 hover:bg-blue-700 text-white rounded-full">
+            <Link href={`/user/lessons/${lessonId}/edit`}>
+              <Edit className="mr-2 h-4 w-4" />
+              Modifier
+            </Link>
+          </Button>
+
+          {/* Delete Button */}
+          {canDelete && (
+            <Button
+              onClick={() => setDeleteDialogOpen(true)}
+              variant="destructive"
+              className="rounded-full"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Supprimer
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer la leçon</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer la leçon &quot;{lesson.title}&quot; ? Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+            >
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Metadata Card */}
       <Card>

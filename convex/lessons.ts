@@ -227,6 +227,75 @@ export const updateLesson = mutation({
 });
 
 /**
+ * Delete a lesson
+ */
+export const deleteLesson = mutation({
+  args: {
+    lessonId: v.id('lessons'),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // Get current user
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error('Not authenticated');
+    }
+
+    // Find user by workosUserId
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_workos_user_id', (q) => q.eq('workosUserId', identity.subject))
+      .unique();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Verify lesson exists
+    const lesson = await ctx.db.get(args.lessonId);
+    if (!lesson) {
+      throw new Error('Lesson not found');
+    }
+
+    // Get user's organizational assignment
+    const userAssignment = await ctx.db
+      .query('userAssignments')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first();
+
+    if (!userAssignment) {
+      throw new Error('User has no organizational assignment');
+    }
+
+    // Check if user has permission to delete (must be creator or admin)
+    const isCreator = lesson.createdBy === user._id;
+    const isNationalAdmin = userAssignment.role === 'national_admin';
+    const isClusterAdmin = userAssignment.role === 'cluster_admin';
+
+    if (!isCreator && !isNationalAdmin && !isClusterAdmin) {
+      throw new Error('You do not have permission to delete this lesson');
+    }
+
+    // Additional check for cluster admin: can only delete lessons from their cluster
+    if (isClusterAdmin && !isNationalAdmin && lesson.scope !== 'national') {
+      if (lesson.clusterId && userAssignment.clusterId !== lesson.clusterId) {
+        throw new Error('You can only delete lessons from your assigned cluster');
+      }
+    }
+
+    // Delete lesson chunks (vectorized content)
+    await ctx.scheduler.runAfter(0, internal.lessonRag.deleteLessonChunks, {
+      lessonId: args.lessonId,
+    });
+
+    // Delete the lesson
+    await ctx.db.delete(args.lessonId);
+
+    return null;
+  },
+});
+
+/**
  * Get lessons visible to the current user
  */
 export const getLessons = query({
