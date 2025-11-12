@@ -94,7 +94,6 @@ Always identify and respond in the same language as the question. Also reason in
       model: "openai/gpt-5-nano",
       messages: convertToModelMessages(messages),
       system: systemMessage,
-      temperature: 0.7,
     });
 
     console.log("StreamText result created, returning response");
