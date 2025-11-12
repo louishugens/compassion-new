@@ -91,7 +91,7 @@ Always identify and respond in the same language as the question. Also reason in
     // For reasoning to work, use a model like "deepseek/deepseek-r1" or "openai/o1"
     // convertToModelMessages handles the conversion from UIMessage to model messages
     const result = streamText({
-      model: "deepseek/deepseek-r1",
+      model: "openai/gpt-5-nano",
       messages: convertToModelMessages(messages),
       system: systemMessage,
       temperature: 0.7,
@@ -100,7 +100,7 @@ Always identify and respond in the same language as the question. Also reason in
     console.log("StreamText result created, returning response");
     return result.toUIMessageStreamResponse({
       sendSources: false,
-      sendReasoning: true,
+      sendReasoning: false,
     });
   } catch (error) {
     console.error("Chat API error:", error);

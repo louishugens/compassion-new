@@ -3,7 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { Conversation, ConversationContent, ConversationEmptyState, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
-import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
+// import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import { 
   PromptInput, 
   PromptInputBody,
@@ -124,17 +124,17 @@ export function LessonChatbot({ lessonId }: LessonChatbotProps) {
                             )}
                           </div>
                         );
-                      case "reasoning":
-                        return (
-                          <Reasoning
-                            key={`${message.id}-${i}`}
-                            className="w-full"
-                            isStreaming={isStreaming}
-                          >
-                            <ReasoningTrigger />
-                            <ReasoningContent>{part.text}</ReasoningContent>
-                          </Reasoning>
-                        );
+                      // case "reasoning":
+                      //   return (
+                      //     <Reasoning
+                      //       key={`${message.id}-${i}`}
+                      //       className="w-full"
+                      //       isStreaming={isStreaming}
+                      //     >
+                      //       <ReasoningTrigger />
+                      //       <ReasoningContent>{part.text}</ReasoningContent>
+                      //     </Reasoning>
+                      //   );
                       default:
                         return null;
                     }
@@ -166,7 +166,18 @@ export function LessonChatbot({ lessonId }: LessonChatbotProps) {
               );
             })
           )}
-          {status === "submitted" && <Loader />}
+          {(() => {
+            // Show loader when submitted or streaming, but only if no assistant message content has appeared yet
+            const lastMessage = messages[messages.length - 1];
+            const hasAssistantContent = lastMessage && 
+              lastMessage.role === "assistant" && 
+              lastMessage.parts && 
+              lastMessage.parts.some((p: any) => p.type === "text" && p.text && p.text.trim().length > 0);
+            
+            // Show loader if submitted, or if streaming but no content has appeared yet
+            const shouldShowLoader = status === "submitted" || (status === "streaming" && !hasAssistantContent);
+            return shouldShowLoader && <Loader />;
+          })()}
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
